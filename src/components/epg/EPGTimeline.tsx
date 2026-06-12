@@ -1,4 +1,5 @@
 import { useMemo, useRef, useEffect } from 'react';
+import { Tooltip } from '@progress/kendo-react-tooltip';
 import { useAppStore } from '../../store/useAppStore';
 import { CHANNELS } from '../../data/channels';
 import { TrackBadge } from '../shared/TrackBadge';
@@ -98,6 +99,7 @@ export const EPGTimeline = ({ onSelectSession }: Props) => {
             </div>
 
             {/* Channel rows */}
+            <Tooltip anchorElement="target" position="top">
             {CHANNELS.map((ch) => {
               const chSessions = filtered.filter((s) => s.channelId === ch.id);
               return (
@@ -118,6 +120,7 @@ export const EPGTimeline = ({ onSelectSession }: Props) => {
                     return (
                       <div
                         key={session.id}
+                        title={`${session.title} — ${session.description}`}
                         onClick={() => !isEnded && onSelectSession(session)}
                         style={{
                           position: 'absolute',
@@ -171,6 +174,7 @@ export const EPGTimeline = ({ onSelectSession }: Props) => {
                 </div>
               );
             })}
+            </Tooltip>
 
             {/* NOW line */}
             {nx > 0 && nx < TIMELINE_WIDTH && (

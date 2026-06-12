@@ -2,25 +2,32 @@ import { useSimulatedViewership } from '../hooks/useSimulatedViewership';
 import { ViewershipChart } from '../components/controlroom/ViewershipChart';
 import { ChannelHealthTable } from '../components/controlroom/ChannelHealthTable';
 import { LiveAlertsFeed } from '../components/controlroom/LiveAlertsFeed';
+import { NowBroadcasting } from '../components/controlroom/NowBroadcasting';
 import { useAppStore } from '../store/useAppStore';
-import { CHANNELS } from '../data/channels';
 import { Link } from 'react-router-dom';
 
-const KPI = ({ label, value, color, sub }: { label: string; value: string | number; color: string; sub?: string }) => (
-  <div style={{
-    background: 'var(--bg-surface)',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
-    padding: '16px 20px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 4,
-  }}>
-    <span style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</span>
-    <span style={{ color, fontSize: 28, fontWeight: 800, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</span>
-    {sub && <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{sub}</span>}
-  </div>
-);
+const KPI = ({ label, value, color, sub, trend }: { label: string; value: string | number; color: string; sub?: string; trend?: 'up' | 'down' | 'stable' }) => {
+  const trendIcon = trend === 'up' ? '↑' : trend === 'down' ? '↓' : null;
+  const trendColor = trend === 'up' ? '#22c55e' : trend === 'down' ? 'var(--live)' : undefined;
+  return (
+    <div style={{
+      background: 'var(--bg-surface)',
+      border: '1px solid var(--border)',
+      borderRadius: 10,
+      padding: '16px 20px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 4,
+    }}>
+      <span style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ color, fontSize: 28, fontWeight: 800, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</span>
+        {trendIcon && <span style={{ color: trendColor, fontSize: 16, fontWeight: 700, lineHeight: 1 }}>{trendIcon}</span>}
+      </div>
+      {sub && <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{sub}</span>}
+    </div>
+  );
+};
 
 const SectionCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
@@ -39,12 +46,24 @@ export const ControlRoomPage = () => {
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
 
+  const viewershipHistory = useAppStore((s) => s.viewershipHistory);
+
   const liveSessions = sessions.filter((s) => s.status === 'live');
   const totalViewers = liveSessions.reduce((sum, s) => sum + s.viewerCount, 0);
   const avgFill = channelHealth.length
     ? Math.round(channelHealth.reduce((sum, h) => sum + h.fillRate, 0) / channelHealth.length)
     : 0;
   const totalQA = channelHealth.reduce((s, h) => s + h.qaActivity, 0);
+
+  const viewerTrend = (() => {
+    if (viewershipHistory.length < 4) return 'stable' as const;
+    const recent = viewershipHistory.slice(-4);
+    const older = (recent[0].ch1 + recent[0].ch2 + recent[0].ch3 + recent[0].ch4 + recent[0].ch5);
+    const latest = (recent[3].ch1 + recent[3].ch2 + recent[3].ch3 + recent[3].ch4 + recent[3].ch5);
+    if (latest > older + 30) return 'up' as const;
+    if (latest < older - 30) return 'down' as const;
+    return 'stable' as const;
+  })();
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column' }}>
@@ -87,56 +106,22 @@ export const ControlRoomPage = () => {
       <div style={{ flex: 1, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto' }}>
 
         {/* KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-          <KPI label="Live Channels"  value={liveSessions.length}        color="var(--live)"     sub="of 5 total" />
-          <KPI label="Total Viewers"  value={totalViewers.toLocaleString()} color="#22c55e"       sub="across all rooms" />
-          <KPI label="Avg Capacity"   value={`${avgFill}%`}              color="var(--upcoming)" sub="room fill rate" />
-          <KPI label="Q&A Activity"   value={totalQA}                    color="#a78bfa"          sub="questions / min" />
+        <div className="cr-kpi-grid">
+          <KPI label="Live Channels"  value={liveSessions.length}           color="var(--live)"     sub="of 5 total" />
+          <KPI label="Total Viewers"  value={totalViewers.toLocaleString()} color="#22c55e"         sub="across all rooms" trend={viewerTrend} />
+          <KPI label="Avg Capacity"   value={`${avgFill}%`}               color="var(--upcoming)" sub="room fill rate" trend={avgFill > 75 ? 'up' : 'stable'} />
+          <KPI label="Q&A Activity"   value={totalQA}                     color="#a78bfa"          sub="questions / min" trend={totalQA > 15 ? 'up' : 'stable'} />
         </div>
 
-        {/* Channel tiles */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
-          {CHANNELS.map((ch) => {
-            const h = channelHealth.find((x) => x.channelId === ch.id);
-            const session = liveSessions.find((s) => s.channelId === ch.id);
-            const fill = h?.fillRate ?? 0;
-            const fillColor = fill > 85 ? 'var(--live)' : fill > 60 ? 'var(--upcoming)' : '#22c55e';
-
-            return (
-              <div key={ch.id} style={{
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border)',
-                borderTop: `3px solid ${ch.color}`,
-                borderRadius: 10,
-                padding: '12px 14px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ color: ch.color, fontWeight: 700, fontSize: 11 }}>CH {ch.number}</span>
-                  {session && <span style={{ color: 'var(--live)', fontSize: 9, fontWeight: 700, letterSpacing: 0.8 }}>● LIVE</span>}
-                </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }}>{ch.name}</div>
-                <div style={{ color: 'var(--text-primary)', fontSize: 12, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                  {session?.title ?? <span style={{ color: 'var(--text-muted)' }}>No active session</span>}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
-                    👥 {h?.viewerCount ?? 0}
-                  </span>
-                  <span style={{ color: fillColor, fontSize: 11, fontWeight: 600 }}>{fill}%</span>
-                </div>
-                <div style={{ height: 4, background: 'var(--border)', borderRadius: 2 }}>
-                  <div style={{ width: `${fill}%`, height: '100%', background: fillColor, borderRadius: 2, transition: 'width 0.5s' }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {/* Now Broadcasting */}
+        <SectionCard title="📺 Now Broadcasting">
+          <div style={{ margin: '-14px -16px', padding: '14px 16px' }}>
+            <NowBroadcasting />
+          </div>
+        </SectionCard>
 
         {/* Chart + Alerts */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16 }}>
+        <div className="cr-chart-grid">
           <SectionCard title="📈 Live Viewership — All Channels">
             <ViewershipChart />
           </SectionCard>

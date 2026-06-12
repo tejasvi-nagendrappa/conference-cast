@@ -111,6 +111,7 @@ export const SESSIONS: Session[] = [
     tags: ['RSC', 'performance', 'streaming'],
     viewerCount: 312,
     capacity: 400,
+    videoId: 'Tn6-PIqc4UM',
   },
   {
     id: 's2',
@@ -126,6 +127,7 @@ export const SESSIONS: Session[] = [
     tags: ['vite', 'tooling', 'bundlers'],
     viewerCount: 287,
     capacity: 350,
+    videoId: 'zQnBQ4tB3ZA',
   },
   {
     id: 's3',
@@ -141,6 +143,7 @@ export const SESSIONS: Session[] = [
     tags: ['k8s', 'deployment', 'containers'],
     viewerCount: 198,
     capacity: 250,
+    videoId: 'PziYflu8cB8',
   },
   {
     id: 's4',
@@ -156,6 +159,7 @@ export const SESSIONS: Session[] = [
     tags: ['design systems', 'components', 'accessibility'],
     viewerCount: 156,
     capacity: 200,
+    videoId: 'OEbRDtCAFdU',
   },
   {
     id: 's5',
@@ -171,6 +175,7 @@ export const SESSIONS: Session[] = [
     tags: ['performance', 'web vitals', 'lighthouse'],
     viewerCount: 224,
     capacity: 300,
+    videoId: 'reztLS3vomE',
   },
   {
     id: 's6',

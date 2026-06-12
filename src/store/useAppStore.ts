@@ -40,6 +40,24 @@ interface AppState {
   tickViewership: () => void;
 }
 
+const generateInitialHistory = (sessions: Session[]) => {
+  const live = sessions.filter((s) => s.status === 'live');
+  const now = new Date();
+  return Array.from({ length: 12 }, (_, i) => {
+    const t = new Date(now.getTime() - (12 - i) * 3000);
+    const snap = { time: t.toLocaleTimeString(), ch1: 0, ch2: 0, ch3: 0, ch4: 0, ch5: 0 };
+    live.forEach((s) => {
+      const key = s.channelId as keyof typeof snap;
+      if (key in snap) {
+        const ramp = 0.6 + (i / 12) * 0.4;
+        const jitter = Math.floor(Math.random() * 40) - 20;
+        (snap as unknown as Record<string, number>)[key] = Math.max(30, Math.round(s.viewerCount * ramp + jitter));
+      }
+    });
+    return snap;
+  });
+};
+
 const buildChannelHealth = (sessions: Session[]): ChannelHealth[] =>
   CHANNELS.map((ch) => {
     const session = sessions.find((s) => s.channelId === ch.id && s.status === 'live');
@@ -72,7 +90,7 @@ export const useAppStore = create<AppState>()((set) => {
   activeSessionId: null,
   qaMessages: INITIAL_QA,
   channelHealth: buildChannelHealth(SESSIONS),
-  viewershipHistory: [],
+  viewershipHistory: generateInitialHistory(SESSIONS),
 
   toggleTheme: () =>
     set((state) => {

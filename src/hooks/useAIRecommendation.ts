@@ -29,7 +29,8 @@ export const useAIRecommendation = (session: Session): AIRecommendation => {
 
   return useMemo(() => {
     if (!profile) {
-      return { score: 72, why: 'Personalise your profile for a tailored score', label: 'Explore', color: '#64748b' };
+      const base = 55 + (session.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 22);
+      return { score: base, why: 'Personalise your profile for a tailored score', label: base >= 70 ? 'Good Fit' : 'Explore', color: base >= 70 ? '#a78bfa' : '#64748b' };
     }
 
     let score = 50;

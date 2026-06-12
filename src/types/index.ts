@@ -34,6 +34,7 @@ export interface Session {
   tags: string[];
   viewerCount: number;
   capacity: number;
+  videoId?: string;
 }
 
 export interface QAMessage {

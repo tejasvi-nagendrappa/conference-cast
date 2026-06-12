@@ -18,6 +18,7 @@ import { LiveGrid } from '../components/live/LiveGrid';
 import { UpcomingList } from '../components/live/UpcomingList';
 import { EPGTimeline } from '../components/epg/EPGTimeline';
 import { PersonalizeDrawer } from '../components/onboarding/PersonalizeDrawer';
+import { SessionNotifier } from '../components/notifications/SessionNotifier';
 import { useSimulatedViewership } from '../hooks/useSimulatedViewership';
 import type { Session } from '../types';
 
@@ -46,6 +47,7 @@ export const AttendeePage = () => {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden', color: 'var(--text-primary)' }}>
+      <SessionNotifier />
 
       {/* Topbar */}
       <div style={{
@@ -104,22 +106,28 @@ export const AttendeePage = () => {
       <TrackFilterBar />
 
       {/* Personal lineup strip */}
-      <div style={{
-        background: 'var(--bg-base)',
-        borderBottom: '1px solid var(--border)',
-        padding: '10px 16px',
-        flexShrink: 0,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>★ Your Lineup</span>
-          {profile && (
+      {profile ? (
+        <div style={{ background: 'var(--bg-base)', borderBottom: '1px solid var(--border)', padding: '8px 16px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>★ Your Lineup</span>
             <span style={{ color: 'var(--accent)', fontSize: 10, fontWeight: 600 }}>✦ AI-personalised for {profile.name}</span>
-          )}
+          </div>
+          <HorizontalLineup onSelectSession={handleSelect} />
         </div>
-        <HorizontalLineup onSelectSession={handleSelect} />
-      </div>
+      ) : (
+        <div style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)', padding: '7px 16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 13 }}>✦</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Get an AI-personalised lineup scored to your interests</span>
+          <button
+            onClick={() => setDrawerOpen(true)}
+            style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}
+          >
+            Set up now →
+          </button>
+        </div>
+      )}
 
-      {/* Tab bar */}
+      {/* Tab bar + inline search */}
       <div style={{
         background: 'var(--bg-surface)',
         borderBottom: '1px solid var(--border)',
@@ -143,7 +151,7 @@ export const AttendeePage = () => {
                 background: 'transparent',
                 border: 'none',
                 borderBottom: isActive ? `2px solid ${color}` : '2px solid transparent',
-                padding: '12px 16px 10px',
+                padding: '10px 14px 8px',
                 cursor: 'pointer',
                 color: isActive ? color : 'var(--text-muted)',
                 fontSize: 12,
@@ -153,6 +161,7 @@ export const AttendeePage = () => {
                 gap: 6,
                 transition: 'color 0.15s',
                 letterSpacing: 0.3,
+                whiteSpace: 'nowrap',
               }}
             >
               {label}
@@ -173,29 +182,24 @@ export const AttendeePage = () => {
             </button>
           );
         })}
-      </div>
 
-      {/* Search bar — Kendo Input */}
-      {tab !== 'guide' && (
-        <div style={{ padding: '8px 16px', background: 'var(--bg-base)', borderBottom: '1px solid var(--border)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.value as string)}
-            placeholder="🔍  Search sessions, speakers, topics…"
-            style={{ maxWidth: 420, fontSize: 12 }}
-          />
-          {search && (
-            <Button
-              fillMode="flat"
-              size="small"
-              onClick={() => setSearch('')}
-              style={{ color: 'var(--text-muted)', fontSize: 11 }}
-            >
-              ✕ Clear
-            </Button>
-          )}
-        </div>
-      )}
+        {/* Search inline — hidden on GUIDE tab */}
+        {tab !== 'guide' && (
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.value as string)}
+              placeholder="🔍 Search…"
+              style={{ width: 200, fontSize: 12 }}
+            />
+            {search && (
+              <Button fillMode="flat" size="small" onClick={() => setSearch('')} style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+                ✕
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Tab content */}
       <div style={{ flex: 1, overflow: tab === 'guide' ? 'hidden' : 'auto', padding: tab === 'guide' ? 0 : '16px', minHeight: 0, display: 'flex', flexDirection: 'column' }}>

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { CHANNELS } from '../../data/channels';
 import { TrackBadge } from '../shared/TrackBadge';
@@ -11,9 +12,14 @@ const ExpandedPlayer = ({ session, onClose }: { session: Session; onClose: () =>
   const fillRate = Math.round((session.viewerCount / session.capacity) * 100);
   const fillColor = fillRate > 80 ? 'var(--live)' : '#22c55e';
   const rec = useAIRecommendation(session);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [session.id]);
 
   return (
-    <div style={{
+    <div ref={ref} style={{
       gridColumn: '1 / -1',
       background: 'var(--bg-surface)',
       border: `1px solid ${channel?.color ?? 'var(--border)'}`,
@@ -23,12 +29,12 @@ const ExpandedPlayer = ({ session, onClose }: { session: Session; onClose: () =>
     }}>
       <style>{`@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
-      <div style={{ display: 'flex', gap: 0, minHeight: 280 }}>
+      <div className="expanded-player-layout">
         {/* Video */}
-        <div style={{ flex: '0 0 55%', position: 'relative', background: '#000' }}>
+        <div className="expanded-video-pane" style={{ position: 'relative', background: '#000' }}>
           <iframe
-            src="https://www.youtube.com/embed/T-slCsOrLcc?controls=1&modestbranding=1&autoplay=1"
-            style={{ width: '100%', height: '100%', minHeight: 280, border: 'none', display: 'block' }}
+            src={`https://www.youtube.com/embed/${session.videoId ?? 'T-slCsOrLcc'}?controls=1&modestbranding=1&autoplay=1`}
+            style={{ width: '100%', height: '100%', minHeight: 220, border: 'none', display: 'block' }}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
@@ -97,7 +103,7 @@ const ExpandedPlayer = ({ session, onClose }: { session: Session; onClose: () =>
   );
 };
 
-const SessionCard = ({ session, isActive, onSelect }: { session: Session; isActive: boolean; onSelect: () => void }) => {
+const SessionCard = ({ session, isActive, onSelect, isTrending }: { session: Session; isActive: boolean; onSelect: () => void; isTrending: boolean }) => {
   const channel = CHANNELS.find((c) => c.id === session.channelId);
   const rec = useAIRecommendation(session);
   const fillRate = Math.round((session.viewerCount / session.capacity) * 100);
@@ -121,7 +127,14 @@ const SessionCard = ({ session, isActive, onSelect }: { session: Session; isActi
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ color: channel?.color, fontSize: 10, fontWeight: 700 }}>CH {channel?.number} · {channel?.name}</span>
-        <span style={{ color: 'var(--live)', fontSize: 10, fontWeight: 700 }}>● LIVE</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {isTrending && (
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', background: '#f59e0b18', border: '1px solid #f59e0b44', borderRadius: 4, padding: '1px 6px' }}>
+              🔥 Trending
+            </span>
+          )}
+          <span style={{ color: 'var(--live)', fontSize: 10, fontWeight: 700 }}>● LIVE</span>
+        </div>
       </div>
 
       <div style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, lineHeight: 1.35 }}>
@@ -180,6 +193,7 @@ export const LiveGrid = ({ onSelectSession, search = '' }: Props) => {
     (!q || s.title.toLowerCase().includes(q) || s.speaker.name.toLowerCase().includes(q) || s.tags.some(t => t.toLowerCase().includes(q)))
   );
   const activeSession = sessions.find((s) => s.id === activeSessionId && s.status === 'live');
+  const trendingId = liveSessions.reduce((top, s) => s.viewerCount > (top?.viewerCount ?? 0) ? s : top, liveSessions[0])?.id;
 
   const handleSelect = (session: Session) => {
     if (activeSessionId === session.id) {
@@ -205,6 +219,7 @@ export const LiveGrid = ({ onSelectSession, search = '' }: Props) => {
           key={session.id}
           session={session}
           isActive={activeSessionId === session.id}
+          isTrending={session.id === trendingId}
           onSelect={() => handleSelect(session)}
         />
       ))}
